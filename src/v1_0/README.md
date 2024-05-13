@@ -1,6 +1,10 @@
-# V1.4: TorchScript Custom Operator (Setuptools)
+# V1.0: Custom C++ extension (Setuptools)
 
 Following PyTorch tutorial: [Custom C++ and CUDA Extensions](https://pytorch.org/tutorials/advanced/cpp_extension.html#custom-c-and-cuda-extensions)
+
+> Note: This is an old version. \
+> v1_3 is a more up-to-date alternative. \
+> Uses TORCH_LIBRARY to bind operators (instead of using PyBind) 
 
 ## Build
 ### Install Dependencies
