@@ -1,6 +1,6 @@
 # V1.3: TorchScript Custom Operator (Setuptools)
 
-Following: https://pytorch.org/tutorials/advanced/torch_script_custom_ops
+Following PyTorch tutorial: [Extending TorchScript with Custom C++ Operators](https://pytorch.org/tutorials/advanced/torch_script_custom_ops)
 
 ## Build
 ### Install Dependencies

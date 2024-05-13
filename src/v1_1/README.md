@@ -1,6 +1,6 @@
-# V1.1: TorchScript Custom Operator
+# V1.1: TorchScript Custom Operator (CMake)
 
-Following: https://pytorch.org/tutorials/advanced/torch_script_custom_ops
+Following PyTorch tutorial: [Extending TorchScript with Custom C++ Operators](https://pytorch.org/tutorials/advanced/torch_script_custom_ops)
 
 ## Build
 ### Install PyTorch
