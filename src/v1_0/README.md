@@ -4,7 +4,9 @@ Following PyTorch tutorial: [Custom C++ and CUDA Extensions](https://pytorch.org
 
 > Note: This is an old version. \
 > v1_3 is a more up-to-date alternative. \
-> Uses TORCH_LIBRARY to bind operators (instead of using PyBind) 
+> Uses `TORCH_LIBRARY` to bind operators (instead of using PyBind)  \
+> `TORCH_LIBRARY` makes the oprator available for use in both eager Python as well as in TorchScript, \
+> while `PYBIND11_MODULE` lets you bind C++ to Python only.
 
 ## Build
 ### Install Dependencies
