@@ -3,7 +3,7 @@
 #include <torch/torch.h>
 
 /**
- *
+ * Matrix multiplication using MKL
  */
 torch::Tensor mmult_mkl(const torch::Tensor &a, const torch::Tensor &b) {
 
