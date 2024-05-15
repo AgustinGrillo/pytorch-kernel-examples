@@ -41,3 +41,14 @@ print(
     "[custom_ops.mmult_naive] Average time per matrix multiplication (µs): ",
     1e6 * total_time / n,
 )
+
+# MKL
+total_time = 0
+for i in range(N):
+    start_time = time.time()
+    custom_ops.mmult_mkl(a, b)
+    total_time += time.time() - start_time
+print(
+    "[custom_ops.mmult_mkl] Average time per matrix multiplication (µs): ",
+    1e6 * total_time / N,
+)
