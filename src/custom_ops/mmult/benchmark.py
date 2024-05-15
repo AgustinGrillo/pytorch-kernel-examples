@@ -3,11 +3,11 @@ import time
 
 torch.ops.load_library("build/libcustom_mmult.so")
 
-N = 10000
+N = 100
 
-m = 8
-k = 16 * 128
-n = 128
+m = 1000
+k = 1000
+n = 1000
 
 custom_ops = torch.ops.custom_ops
 
@@ -19,9 +19,11 @@ operators = [
     torch.mm,
     custom_ops.mmult_passthrough,
     # custom_ops.mmult_naive,
+    # custom_ops.mmult_naive_multithreaded,
     custom_ops.mmult_mkl,
 ]
 
+# custom_ops.set_num_threads(4)
 
 # Warm up
 print("Warming up...")
@@ -31,6 +33,7 @@ for i in range(N):
 
 # Benchmark
 for operator in operators:
+    operator(a, b)  # Warm up
     start_time = time.time()
     for i in range(N):
         operator(a, b)

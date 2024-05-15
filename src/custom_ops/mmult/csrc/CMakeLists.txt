@@ -6,6 +6,9 @@ find_package(Torch REQUIRED)
 # set MKL root directory
 set(MKL_ROOT "/opt/intel/oneapi/mkl/latest")
 
+# Add debug preprocessor directive
+add_definitions(-DDEBUG)
+
 # Define our library target
 add_library(custom_mmult SHARED mmult.cpp)
 # define architecture 
