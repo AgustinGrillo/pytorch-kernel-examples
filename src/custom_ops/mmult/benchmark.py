@@ -7,48 +7,24 @@ N = 200000
 
 custom_ops = torch.ops.custom_ops
 
+# Create two random matrices in float32
 a = torch.randn(2, 3)
 b = torch.randn(3, 4)
 
+operators = [
+    torch.mm,
+    custom_ops.mmult_passthrough,
+    custom_ops.mmult_naive,
+    custom_ops.mmult_mkl,
+]
 
-# Default op (torch.mm) with no broadcasting
-total_time = 0
-for i in range(N):
-    start_time = time.time()
-    torch.mm(a, b)
-    total_time += time.time() - start_time
-print("[torch.mm] Average time per matrix multiplication (µs): ", 1e6 * total_time / N)
 
-# Passthrough
-total_time = 0
-for i in range(N):
-    start_time = time.time()
-    custom_ops.mmult_passthrough(a, b)
-    total_time += time.time() - start_time
-print(
-    "[custom_ops.mmult_passthrough] Average time per matrix multiplication (µs): ",
-    1e6 * total_time / N,
-)
-
-# Naive
-n = int(N / 10)
-total_time = 0
-for i in range(n):
-    start_time = time.time()
-    custom_ops.mmult_naive(a, b)
-    total_time += time.time() - start_time
-print(
-    "[custom_ops.mmult_naive] Average time per matrix multiplication (µs): ",
-    1e6 * total_time / n,
-)
-
-# MKL
-total_time = 0
-for i in range(N):
-    start_time = time.time()
-    custom_ops.mmult_mkl(a, b)
-    total_time += time.time() - start_time
-print(
-    "[custom_ops.mmult_mkl] Average time per matrix multiplication (µs): ",
-    1e6 * total_time / N,
-)
+for operator in operators:
+    total_time = 0
+    for i in range(N):
+        start_time = time.time()
+        operator(a, b)
+        total_time += time.time() - start_time
+    print(
+        f"[{operator.__module__}.{operator.__name__}] Average time per matrix multiplication (µs): { 1e6 * total_time / N }"
+    )
