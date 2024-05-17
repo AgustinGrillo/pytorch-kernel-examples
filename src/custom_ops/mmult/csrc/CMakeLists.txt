@@ -25,7 +25,7 @@ target_link_libraries(custom_mmult "${TORCH_LIBRARIES}")
 target_include_directories(custom_mmult PRIVATE "${MKL_ROOT}/include")
 # Link against MKL 
 target_link_libraries(custom_mmult "${MKL_ROOT}/lib/intel64/libmkl_intel_ilp64.a" "${MKL_ROOT}/lib/intel64/libmkl_sequential.a" "${MKL_ROOT}/lib/intel64/libmkl_core.a")
-# Link against pthread, math and dynamic linking libraries
-target_link_libraries(custom_mmult pthread m dl)
+# Link against math and dynamic linking libraries
+target_link_libraries(custom_mmult m dl)
 
 

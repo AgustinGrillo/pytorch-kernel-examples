@@ -113,8 +113,7 @@ torch::Tensor mmult_naive_multithreaded(const torch::Tensor &a,
       int start = i * n / num_threads;
       int end = (i + 1) * n / num_threads;
       // slice the matrix b -> bc_i[:, start:end]
-      torch::Tensor bc_i = bc.index(
-          {torch::indexing::Slice(), torch::indexing::Slice(start, end)});
+      torch::Tensor bc_i = bc.slice(1, start, end);
       torch::Tensor partial_output = mmult_naive(ac, bc_i);
       // copy the partial output to the final output
       output.index({torch::indexing::Slice(),
