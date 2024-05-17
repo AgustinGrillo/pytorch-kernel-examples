@@ -86,6 +86,16 @@ void set_num_threads(int64_t threads) {
 #endif
 }
 
+void set_thread_affinity_for_core(int i) {
+  cpu_set_t cpuset;
+  CPU_ZERO(&cpuset);
+  CPU_SET(i, &cpuset);
+  auto s = pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
+  if (s != 0) {
+    std::cerr << "Error setting thread affinity for thread " << i << std::endl;
+  }
+}
+
 /**
  * Multithreaded (Naive) Matrix multiplication (column parallelism)
  */
@@ -110,6 +120,9 @@ torch::Tensor mmult_naive_multithreaded(const torch::Tensor &a,
   std::vector<std::thread> threads;
   for (int i = 0; i < num_threads; i++) {
     std::thread t([i, n, ac, bc, output]() {
+      // // Set thread affinity
+      // set_thread_affinity_for_core(i);
+      // Compute mmult for the slice
       int start = i * n / num_threads;
       int end = (i + 1) * n / num_threads;
       // slice the matrix b -> bc_i[:, start:end]
