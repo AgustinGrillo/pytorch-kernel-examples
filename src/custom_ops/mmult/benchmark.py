@@ -1,7 +1,6 @@
 import torch
+import vgpu
 import time
-
-torch.ops.load_library("build/libcustom_mmult.so")
 
 N = 100
 
@@ -9,7 +8,6 @@ m = 1000
 k = 1000
 n = 1000
 
-custom_ops = torch.ops.custom_ops
 
 # Create two random matrices in float32
 a = torch.randn(m, k)
@@ -17,13 +15,13 @@ b = torch.randn(k, n)
 
 operators = [
     torch.mm,
-    custom_ops.mmult_passthrough,
-    # custom_ops.mmult_naive,
-    # custom_ops.mmult_naive_multithreaded,
-    custom_ops.mmult_mkl,
+    torch.vgpu.ops.mmult_passthrough,
+    # torch.vgpu.ops.mmult_naive,
+    # torch.vgpu.ops.mmult_naive_multithreaded,
+    torch.vgpu.ops.mmult_mkl,
 ]
 
-# custom_ops.set_num_threads(4)
+# torch.vgpu.utils.set_num_threads(4)
 
 # Warm up
 print("Warming up...")
