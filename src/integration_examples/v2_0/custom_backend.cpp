@@ -58,7 +58,7 @@ TORCH_LIBRARY_IMPL(_, PrivateUse1, m) {
 // ========= Custom Allocator =========
 // ====================================
 
-// A Custom allocator for the new backend
+// A custom (cpu-based) allocator for the new backend
 struct CustomAllocator final : at::Allocator {
   CustomAllocator() = default;
   at::DataPtr allocate(size_t nbytes) override {
@@ -111,19 +111,10 @@ at::Tensor empty_memory_format(
     c10::optional<bool> pin_memory_opt,
     c10::optional<c10::MemoryFormat> memory_format_opt) {
 
+  std::cout << "Custom aten::empty.memory_format() called!" << std::endl;
+
   // at::ScalarType dtype = dtype_opt ? *dtype_opt : at::kFloat;
   at::ScalarType dtype = c10::dtype_or_default(dtype_opt);
-
-  std::cout << "Custom aten::empty.memory_format() called!. Parameters:"
-            << std::endl;
-  std::cout << "Size: " << size << std::endl;
-  std::cout << "Dtype: " << dtype << std::endl;
-  device_opt.has_value()
-      ? std::cout << "Device: " << device_opt.value() << std::endl
-      : std::cout << "Device: None" << std::endl;
-  memory_format_opt.has_value()
-      ? std::cout << "Memory Format: " << memory_format_opt.value() << std::endl
-      : std::cout << "Memory Format: None" << std::endl;
 
   c10::DispatchKeySet ks = c10::DispatchKeySet{
       c10::DispatchKey::PrivateUse1, c10::DispatchKey::AutogradPrivateUse1};

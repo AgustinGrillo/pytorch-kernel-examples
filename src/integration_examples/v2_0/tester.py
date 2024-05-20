@@ -1,11 +1,9 @@
 import torch
+import vgpu
 
-torch.ops.load_library("build/libcustom_mmult.so")
 
-# op = torch.ops.custom_ops.mm
-
-# custom_device = torch.device("privateuseone")
-custom_device = "privateuseone:0"
+# custom_device = torch.device("vgpu")
+custom_device = "vgpu:0"
 
 # a = torch.randn(2, 3).to(custom_device)
 # b = torch.randn(3, 4).to(custom_device)

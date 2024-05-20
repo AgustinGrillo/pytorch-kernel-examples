@@ -4,8 +4,8 @@ project(custom_backend)
 find_package(Torch REQUIRED)
 
 # Define our library target
-add_library(custom_mmult SHARED custom_mmult_op.cpp)
+add_library(custom_backend SHARED custom_backend.cpp)
 # Enable C++14
-target_compile_features(custom_mmult PRIVATE cxx_std_14)
+target_compile_features(custom_backend PRIVATE cxx_std_14)
 # Link against LibTorch
-target_link_libraries(custom_mmult "${TORCH_LIBRARIES}")
+target_link_libraries(custom_backend "${TORCH_LIBRARIES}")
