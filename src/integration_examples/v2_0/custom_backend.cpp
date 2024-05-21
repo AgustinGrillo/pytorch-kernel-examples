@@ -18,7 +18,7 @@ namespace vgpu {
 torch::Tensor mm(const torch::Tensor &a, const torch::Tensor &b) {
   std::cout << "Custom torch.mm called!" << std::endl;
 
-  torch::Tensor output = torch::empty({a.size(0), b.size(1)});
+  torch::Tensor output = torch::empty({a.size(0), b.size(1)}, a.options());
 
   auto a_accessor = a.accessor<float, 2>();
   auto b_accessor = b.accessor<float, 2>();
@@ -33,7 +33,7 @@ torch::Tensor mm(const torch::Tensor &a, const torch::Tensor &b) {
       output_accessor[i][j] = sum;
     }
   }
-  return output.clone();
+  return output;
 }
 
 TORCH_LIBRARY_IMPL(aten, PrivateUse1, m) { m.impl("mm", &mm); }
