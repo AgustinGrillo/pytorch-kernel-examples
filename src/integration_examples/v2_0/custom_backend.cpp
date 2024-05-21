@@ -88,8 +88,8 @@ struct CustomAllocator final : at::Allocator {
 };
 
 // Register allocator
-static CustomAllocator allocator;
-REGISTER_ALLOCATOR(c10::DeviceType::PrivateUse1, &allocator);
+static CustomAllocator g_allocator;
+REGISTER_ALLOCATOR(c10::DeviceType::PrivateUse1, &g_allocator);
 
 // // To create a TensorImpl on PrivateUse1 backend, pass in the following ks to
 // // TensorImpl creation.
@@ -133,10 +133,10 @@ at::Tensor empty_memory_format(
   // // torch::Tensor tensor = torch::Tensor(std::move(impl));
   // torch::Tensor tensor = torch::Tensor::wrap_tensor_impl(impl);
 
-  // c10::Allocator *allocator = c10::GetAllocator(c10::DeviceType::CPU);
+  c10::Allocator *allocator = c10::GetAllocator(c10::DeviceType::PrivateUse1);
 
   torch::Tensor tensor =
-      at::detail::empty_generic(size, &allocator, ks, dtype, memory_format_opt);
+      at::detail::empty_generic(size, allocator, ks, dtype, memory_format_opt);
 
   return tensor;
 }
