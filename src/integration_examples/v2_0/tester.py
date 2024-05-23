@@ -5,10 +5,20 @@ import vgpu
 # custom_device = torch.device("vgpu")
 custom_device = "vgpu:0"
 
-# a = torch.randn(2, 3).to(custom_device)
-# b = torch.randn(3, 4).to(custom_device)
-a = torch.randn(2, 3, device=custom_device)
-b = torch.randn(3, 4, device=custom_device)
-c = torch.mm(a, b)
+tst_1 = torch.tensor(0, device=custom_device)
+tst_2 = torch.tensor([0], device=custom_device)
+tst_3 = torch.tensor([0, 0], device=custom_device)
 
-print(c)
+a = torch.tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]], device=custom_device)
+a_cpu = a.cpu()
+b = torch.tensor(
+    [[1.0, 2.0, 3.0, 4.0], [5.0, 6.0, 7.0, 8.0], [8.0, 10.0, 11.0, 12.0]],
+    device=custom_device,
+)
+b_cpu = b.cpu()
+
+c = torch.mm(a, b)
+c_cpu = c.cpu()
+c_cpu_check = torch.mm(a_cpu, b_cpu)
+
+# print(c)

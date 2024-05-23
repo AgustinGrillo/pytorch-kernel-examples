@@ -147,7 +147,7 @@ at::Tensor empty_memory_format(
   torch::Tensor tensor = at::detail::make_tensor<at::TensorImpl>(
       std::move(storage), ks, meta_dtype);
 
-  tensor.unsafeGetTensorImpl()->generic_set_sizes_contiguous(size);
+  tensor.unsafeGetTensorImpl()->set_sizes_contiguous(size);
 
   // torch::Tensor tensor =
   //     at::detail::empty_generic(size, allocator, ks, dtype,
@@ -156,9 +156,43 @@ at::Tensor empty_memory_format(
   return tensor;
 }
 
+torch::Tensor empty_strided(at::IntArrayRef size, at::IntArrayRef stride,
+                            c10::optional<at::ScalarType> dtype,
+                            c10::optional<at::Layout> layout,
+                            c10::optional<at::Device> device,
+                            c10::optional<bool> pin_memory) {
+
+  std::cout << "Custom aten::empty_strided() called!" << std::endl;
+
+  // TODO:
+  // caffe2::TypeMeta meta_dtype =
+  //     scalarTypeToTypeMeta(c10::dtype_or_default(dtype));
+  // size_t size_bytes =
+  //     at::detail::computeStorageNbytes(size, stride, meta_dtype.itemsize());
+  //
+  // c10::DispatchKeySet ks =
+  // c10::DispatchKeySet{c10::DispatchKey::PrivateUse1};
+  //
+  // c10::Allocator *allocator =
+  // c10::GetAllocator(c10::DeviceType::PrivateUse1);
+  //
+  // c10::Storage storage =
+  //     c10::Storage(c10::Storage::use_byte_size_t(), size_bytes, allocator,
+  //                  /*resizable=*/true);
+  //
+  // auto tensor = at::detail::make_tensor<c10::TensorImpl>(std::move(storage),
+  // ks,
+  //                                                        meta_dtype);
+  // tensor.unsafeGetTensorImpl()->set_sizes_and_strides(size, stride);
+
+  torch::Tensor tensor = vgpu::empty_memory_format(size, dtype, layout, device,
+                                                   pin_memory, c10::nullopt);
+  return tensor;
+}
+
 torch::Tensor _copy_from(const torch::Tensor &self, const torch::Tensor &dst,
                          bool non_blocking) {
-  std::cout << "Custom _copy_from called!" << std::endl;
+  std::cout << "Custom aten::_copy_from called!" << std::endl;
   std::memcpy(dst.storage().data_ptr().get(), self.storage().data_ptr().get(),
               self.storage().nbytes());
   return dst;
@@ -170,7 +204,7 @@ torch::Tensor _copy_from_and_resize(const torch::Tensor &self,
 }
 
 torch::Tensor view(const torch::Tensor &self, c10::IntArrayRef shape) {
-  std::cout << "View running inside custom backend!" << std::endl;
+  std::cout << "Custom aten::view called!" << std::endl;
   // at::DimVector inferred_size = at::infer_size_dv(shape, self.numel());
   //
   // torch::Tensor self_ = at::detail::make_tensor<at::TensorImpl>(
@@ -185,17 +219,18 @@ torch::Tensor view(const torch::Tensor &self, c10::IntArrayRef shape) {
 }
 
 torch::Tensor &fill_scalar(torch::Tensor &self, const at::Scalar &value) {
-  std::cout << "Fill scalar running inside custom backend!" << std::endl;
+  std::cout << "Custom aten::fill_ called!" << std::endl;
   // TODO: Should fill the tensor's data with "value".
   return self;
 }
 
 TORCH_LIBRARY_IMPL(aten, PrivateUse1, m) {
-  m.impl("empty.memory_format", empty_memory_format);
-  m.impl("_copy_from", _copy_from);
-  m.impl("_copy_from_and_resize", _copy_from_and_resize);
-  m.impl("fill_.Scalar", fill_scalar);
-  m.impl("view", view);
+  m.impl("aten::empty.memory_format", empty_memory_format);
+  m.impl("aten::empty_strided", empty_strided);
+  m.impl("aten::_copy_from", _copy_from);
+  m.impl("aten::_copy_from_and_resize", _copy_from_and_resize);
+  m.impl("aten::fill_.Scalar", fill_scalar);
+  m.impl("aten::view", view);
 }
 
 /* Register generator for the new backend */
