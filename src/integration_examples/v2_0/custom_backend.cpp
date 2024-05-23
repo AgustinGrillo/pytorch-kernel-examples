@@ -1,4 +1,5 @@
 #include <ATen/ATen.h>
+#include <ATen/InferSize.h>
 #include <ATen/native/CPUFallback.h>
 #include <c10/core/DispatchKeySet.h>
 #include <c10/core/GeneratorImpl.h>
@@ -91,15 +92,6 @@ struct CustomAllocator final : at::Allocator {
 static CustomAllocator g_allocator;
 REGISTER_ALLOCATOR(c10::DeviceType::PrivateUse1, &g_allocator);
 
-// // To create a TensorImpl on PrivateUse1 backend, pass in the following ks to
-// // TensorImpl creation.
-// c10::DispatchKeySet ks = c10::DispatchKeySet{
-//     c10::DispatchKey::PrivateUse1, c10::DispatchKey::AutogradPrivateUse1};
-//
-// /* Example TensorImpl constructor */
-// c10::TensorImpl(c10::Storage &&storage, c10::DispatchKeySet ks,
-//                 const caffe2::TypeMeta data_type);
-
 // ===========================
 // ========= Kernels =========
 // ===========================
@@ -115,28 +107,51 @@ at::Tensor empty_memory_format(
 
   // at::ScalarType dtype = dtype_opt ? *dtype_opt : at::kFloat;
   at::ScalarType dtype = c10::dtype_or_default(dtype_opt);
+  caffe2::TypeMeta meta_dtype = scalarTypeToTypeMeta(dtype);
+  size_t size_bytes =
+      at::detail::computeStorageNbytesContiguous(size, meta_dtype.itemsize());
 
-  c10::DispatchKeySet ks = c10::DispatchKeySet{
-      c10::DispatchKey::PrivateUse1, c10::DispatchKey::AutogradPrivateUse1};
-
-  // c10::Storage storage = c10::Storage(
-  //     c10::Storage::use_byte_size_t(), options.dtype().itemsize() *
-  //     size.size(), c10::DataPtr(nullptr, c10::Device(options.device())),
-  //     /*allocator=*/nullptr,
-  //     /*resizable=*/false);
-  //
-  //
-  // c10::intrusive_ptr<c10::TensorImpl> impl =
-  //     c10::make_intrusive<c10::TensorImpl>(std::move(storage), ks,
-  //                                          options.dtype());
-  //
-  // // torch::Tensor tensor = torch::Tensor(std::move(impl));
-  // torch::Tensor tensor = torch::Tensor::wrap_tensor_impl(impl);
+  c10::DispatchKeySet ks = c10::DispatchKeySet{c10::DispatchKey::PrivateUse1};
 
   c10::Allocator *allocator = c10::GetAllocator(c10::DeviceType::PrivateUse1);
 
-  torch::Tensor tensor =
-      at::detail::empty_generic(size, allocator, ks, dtype, memory_format_opt);
+  /*
+   Storage:
+   - c10::StorageImpl / c10::Storage
+   - The actual physical data, physical size, dtype, device.
+    - Fields: data_ptr, size, allocator..
+   **/
+
+  c10::Storage storage =
+      c10::Storage(c10::Storage::use_byte_size_t(), size_bytes, allocator,
+                   /*resizable=*/true);
+
+  // auto storage = c10::make_intrusive<c10::StorageImpl>(
+  //     c10::StorageImpl::use_byte_size_t(), size_bytes,
+  //     // c10::DataPtr(nullptr, c10::Device(c10::DeviceType::PrivateUse1)),
+  //     allocator,
+  //     /*resizable=*/true);
+
+  /*
+  TensorImpl:
+  - c10::TensorImpl
+  - The logical view (size, strides, storage_offset) of the tensor.
+    - Fields: sizes, dtype, type_id, strides, storage_offset, storage, dim.
+  **/
+
+  // c10::intrusive_ptr<c10::TensorImpl> impl =
+  //     c10::make_intrusive<c10::TensorImpl>(std::move(storage), ks,
+  //     meta_dtype);
+  // torch::Tensor tensor = torch::Tensor::wrap_tensor_impl(impl);
+
+  torch::Tensor tensor = at::detail::make_tensor<at::TensorImpl>(
+      std::move(storage), ks, meta_dtype);
+
+  tensor.unsafeGetTensorImpl()->generic_set_sizes_contiguous(size);
+
+  // torch::Tensor tensor =
+  //     at::detail::empty_generic(size, allocator, ks, dtype,
+  //     memory_format_opt);
 
   return tensor;
 }
@@ -154,14 +169,23 @@ torch::Tensor _copy_from_and_resize(const torch::Tensor &self,
   return vgpu::_copy_from(self, dst, false);
 }
 
-torch::Tensor view(const torch::Tensor &self, c10::IntArrayRef size) {
+torch::Tensor view(const torch::Tensor &self, c10::IntArrayRef shape) {
   std::cout << "View running inside custom backend!" << std::endl;
+  // at::DimVector inferred_size = at::infer_size_dv(shape, self.numel());
+  //
+  // torch::Tensor self_ = at::detail::make_tensor<at::TensorImpl>(
+  //     self.storage(), self.storage_offset(), self.options());
+  // return self_;
   return self.clone();
+
+  // torch::Tensor data = at::alias(self);
+  // TORCH_CHECK(data.is_contiguous(), "View imlemented on contiguous array");
+  // data.getIntrusivePtr()->set_sizes_contiguous(inferred_size);
+  // return data;
 }
 
 torch::Tensor &fill_scalar(torch::Tensor &self, const at::Scalar &value) {
   std::cout << "Fill scalar running inside custom backend!" << std::endl;
-  const at::OptionalDeviceGuard device_guard(at::device_of(self));
   // TODO: Should fill the tensor's data with "value".
   return self;
 }
