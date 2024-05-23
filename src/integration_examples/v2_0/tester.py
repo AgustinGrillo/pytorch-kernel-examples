@@ -21,4 +21,6 @@ c = torch.mm(a, b)
 c_cpu = c.cpu()
 c_cpu_check = torch.mm(a_cpu, b_cpu)
 
+av_cpu = a.view(6).cpu()
+
 # print(c)

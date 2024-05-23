@@ -205,17 +205,19 @@ torch::Tensor _copy_from_and_resize(const torch::Tensor &self,
 
 torch::Tensor view(const torch::Tensor &self, c10::IntArrayRef shape) {
   std::cout << "Custom aten::view called!" << std::endl;
-  // at::DimVector inferred_size = at::infer_size_dv(shape, self.numel());
-  //
-  // torch::Tensor self_ = at::detail::make_tensor<at::TensorImpl>(
-  //     self.storage(), self.storage_offset(), self.options());
-  // return self_;
-  return self.clone();
+  at::DimVector inferred_size = at::infer_size_dv(shape, self.numel());
+  auto stride =
+      at::detail::computeStride(self.sizes(), self.strides(), inferred_size);
 
-  // torch::Tensor data = at::alias(self);
-  // TORCH_CHECK(data.is_contiguous(), "View imlemented on contiguous array");
-  // data.getIntrusivePtr()->set_sizes_contiguous(inferred_size);
-  // return data;
+  torch::Tensor self_ = at::detail::make_tensor<c10::TensorImpl>(
+      c10::TensorImpl::VIEW, c10::Storage(self.storage()), self.key_set(),
+      self.dtype());
+
+  auto *self_tmp_ = self_.unsafeGetTensorImpl();
+  self_tmp_->set_storage_offset(self.storage_offset());
+  self_tmp_->set_sizes_and_strides(inferred_size, *stride);
+
+  return self_;
 }
 
 torch::Tensor &fill_scalar(torch::Tensor &self, const at::Scalar &value) {
