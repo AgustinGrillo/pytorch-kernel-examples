@@ -1,5 +1,6 @@
 #include <ATen/ATen.h>
 #include <ATen/InferSize.h>
+#include <ATen/core/GeneratorForPrivateuseone.h>
 #include <ATen/native/CPUFallback.h>
 #include <c10/core/DispatchKeySet.h>
 #include <c10/core/GeneratorImpl.h>
@@ -193,13 +194,19 @@ torch::Tensor empty_strided(at::IntArrayRef size, at::IntArrayRef stride,
 torch::Tensor _copy_from(const torch::Tensor &self, const torch::Tensor &dst,
                          bool non_blocking) {
   std::cout << "Custom aten::_copy_from called!" << std::endl;
+
+  if (self.is_same(dst)) {
+    return self;
+  }
   std::memcpy(dst.storage().data_ptr().get(), self.storage().data_ptr().get(),
               self.storage().nbytes());
+
   return dst;
 }
 
 torch::Tensor _copy_from_and_resize(const torch::Tensor &self,
                                     const torch::Tensor &dst) {
+  std::cout << "Custom aten::_copy_from_and_resize called!" << std::endl;
   return vgpu::_copy_from(self, dst, false);
 }
 
@@ -237,14 +244,20 @@ TORCH_LIBRARY_IMPL(aten, PrivateUse1, m) {
 
 /* Register generator for the new backend */
 
-// struct CustomGeneratorImpl : public c10::GeneratorImpl {
-//   // Implementation of generator in new backend
+// class PrivateGeneratorImpl : public at::CPUGeneratorImpl {
+// public:
+//   // Constructors
+//   PrivateGeneratorImpl(c10::DeviceIndex device_index) {
+//     device_ = c10::Device(c10::DeviceType::PrivateUse1, device_index);
+//     key_set_ = c10::DispatchKeySet(c10::DispatchKey::PrivateUse1);
+//   }
+//   ~PrivateGeneratorImpl() override = default;
 // };
 //
 // at::Generator make_custom_generator(c10::DeviceIndex device_index) {
-//   return at::make_generator<CustomGeneratorImpl>(device_index);
+//   return at::make_generator<PrivateGeneratorImpl>(device_index);
 // }
 //
-// REGISTER_GENERATOR_PRIVATEUSE1(make_cumstom_generator);
+// REGISTER_GENERATOR_PRIVATEUSE1(make_custom_generator);
 
 } // namespace vgpu
