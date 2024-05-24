@@ -1,10 +1,10 @@
 name: pytorch_extension
 channels:
-  - defaults
   - pytorch
+  - defaults
 dependencies:
   - python=3.12
-  - pytorch
+  - pytorch=2.3.0
   - ipython
   - numpy
   - ninja
