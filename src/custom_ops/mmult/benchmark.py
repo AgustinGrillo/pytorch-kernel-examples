@@ -5,12 +5,14 @@ from torch.profiler import profile, schedule, record_function, ProfilerActivity
 import time
 import numpy as np
 
-N = 10
+N = 100
 
-m = int(3000)
-k = int(3000)
-n = int(3000)
+m = int(8)
+k = int(2**15)  # 8 a 32k
+n = int(128)
 
+torch.set_num_threads(1)
+print(f"Number of threads: {torch.get_num_threads()}")
 
 # Create two random matrices in float32
 a = torch.randn(m, k)
@@ -32,41 +34,14 @@ for operator in operators:
     for i in range(N):
         operator(a, b)  # Warm up
 
-    start_time = None
-    times = np.array([])
+    start_time = time.perf_counter()
     for i in range(N):
-        start_time = time.perf_counter()
         operator(a, b)
-        end_time = time.perf_counter()
-        total_time = end_time - start_time
-        times = np.append(times, total_time)
-
-    print("Raw results:")
+    end_time = time.perf_counter()
+    total_time = end_time - start_time
+    mean_time = total_time / N
     print(
-        f"[{operator.__module__}.{operator.__name__}] Average time per matrix multiplication (µs): { 1e6 * np.mean(times):.2f}"
-    )
-    print(
-        f"[{operator.__module__}.{operator.__name__}] Median time per matrix multiplication (µs): { 1e6 * np.median(times):.2f}"
-    )
-    print(
-        f"[{operator.__module__}.{operator.__name__}] Standard deviation of time per matrix multiplication (µs): { 1e6 * np.std(times):.2f}"
-    )
-    print(
-        f"[{operator.__module__}.{operator.__name__}] Min / Max time per matrix multiplication (µs): { 1e6 * np.min(times):.2f} / { 1e6 * np.max(times):.2f}"
-    )
-    print("Results without outliers:")
-    times = times[times < np.mean(times) + 2 * np.std(times)]
-    print(
-        f"[{operator.__module__}.{operator.__name__}] Average time per matrix multiplication (µs): { 1e6 * np.mean(times):.2f}"
-    )
-    print(
-        f"[{operator.__module__}.{operator.__name__}] Median time per matrix multiplication (µs): { 1e6 * np.median(times):.2f}"
-    )
-    print(
-        f"[{operator.__module__}.{operator.__name__}] Standard deviation of time per matrix multiplication (µs): { 1e6 * np.std(times):.2f}"
-    )
-    print(
-        f"[{operator.__module__}.{operator.__name__}] Min / Max time per matrix multiplication (µs): { 1e6 * np.min(times):.2f} / { 1e6 * np.max(times):.2f}"
+        f"[{operator.__module__}.{operator.__name__}] Average time per matrix multiplication (µs): { 1e6 * mean_time:.2f}"
     )
 
 

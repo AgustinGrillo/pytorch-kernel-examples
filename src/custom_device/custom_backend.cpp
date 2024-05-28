@@ -8,8 +8,9 @@
 #include <c10/core/TensorImpl.h>
 #include <c10/core/impl/alloc_cpu.h>
 #include <iostream>
-#include <mkl.h>
-#include <torch/torch.h>
+// #include <mkl.h>
+// #include <torch/torch.h>
+#include "custom_backend.hpp"
 
 namespace vgpu {
 
@@ -19,6 +20,8 @@ namespace vgpu {
 
 // Custom matrix multiplication operation
 torch::Tensor mm(const torch::Tensor &a, const torch::Tensor &b) {
+  // std::cout << "Number of threads (torch): " << torch::get_num_threads()
+  //           << std::endl;
   // std::cout << "Custom torch.mm called!" << std::endl;
   float alpha = 1.0f;
   float beta = 0.0f;
