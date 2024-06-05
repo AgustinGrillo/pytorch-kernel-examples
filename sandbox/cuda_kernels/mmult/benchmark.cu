@@ -1,3 +1,4 @@
+#include "mkl.h"
 #include "mmult.hpp"
 #include <algorithm>
 #include <chrono>
@@ -7,6 +8,7 @@
 #include <iostream>
 #include <math.h>
 #include <numeric>
+#include <omp.h>
 #include <stdlib.h>
 #include <vector>
 
@@ -54,6 +56,45 @@ void benchmark_operator(const std::function<void()> &callable_op,
   }
 }
 
+void benchmark_kernel(const std::function<void()> &callable_op,
+                      std::vector<double> &times, int iterations,
+                      int num_samples) {
+  cudaEvent_t start, stop;
+  // prepare buffer to scrub L2 cache between benchmarks
+  // just memset a large dummy array, recommended by
+  // https://stackoverflow.com/questions/31429377/how-can-i-clear-flush-the-l2-cache-and-the-tlb-of-a-gpu
+  // and apparently used in nvbench.
+  int deviceIdx = 0;
+  cudaSetDevice(deviceIdx);
+  cudaDeviceProp deviceProp;
+  cudaGetDeviceProperties(&deviceProp, deviceIdx);
+  void *flush_buffer;
+  cudaMalloc(&flush_buffer, deviceProp.l2CacheSize);
+
+  cudaEventCreate(&start);
+  cudaEventCreate(&stop);
+
+  for (int ns = 0; ns < num_samples; ns++) {
+    float elapsed_time = 0.f;
+    for (int i = 0; i < iterations; i++) {
+      // clear L2
+      cudaMemset(flush_buffer, 0, deviceProp.l2CacheSize);
+      // now we can start recording the timing of the kernel
+      cudaEventRecord(start, nullptr);
+      callable_op();
+      cudaEventRecord(stop, nullptr);
+      cudaEventSynchronize(start);
+      cudaEventSynchronize(stop);
+      float single_call;
+      cudaEventElapsedTime(&single_call, start, stop);
+      elapsed_time += single_call;
+    }
+    times.push_back(1e3 * elapsed_time / iterations); // convert to us
+  }
+
+  cudaFree(flush_buffer);
+}
+
 /**
  * Benchmark matrix multiplication
  */
@@ -61,13 +102,22 @@ int main() {
   srand(0);
 
   // Matrix multiplication sizes
-  int iterations = 1000;
-  int num_samples = 100;
+  int iterations = 100;
+  int num_samples = 10;
+
   int m = 8;
   std::vector<int> ks = {
-      static_cast<int>(pow(2, 3)), static_cast<int>(pow(2, 5)),
-      static_cast<int>(pow(2, 7)), static_cast<int>(pow(2, 10))};
+      static_cast<int>(pow(2, 3)),  static_cast<int>(pow(2, 5)),
+      static_cast<int>(pow(2, 7)),  static_cast<int>(pow(2, 9)),
+      static_cast<int>(pow(2, 11)), static_cast<int>(pow(2, 13)),
+      static_cast<int>(pow(2, 15))};
   int n = 128;
+
+  // MKL multithreading
+  mkl_set_dynamic(0);
+  mkl_set_num_threads(10);
+  std::cout << "omp_get_max_threads(): " << omp_get_max_threads() << std::endl;
+  std::cout << "mkl_get_max_threads(): " << mkl_get_max_threads() << std::endl;
 
   // Device
   cudaDeviceProp deviceProp;
@@ -134,6 +184,11 @@ int main() {
           cudaDeviceSynchronize();
         },
         times_cuda_naive, iterations, num_samples);
+    // benchmark_kernel(
+    //     [&]() {
+    //       custom::mmult_naive(d_out, d_a, d_b, m, k, n);
+    //     },
+    //     times_cuda_naive, iterations, num_samples);
     compute_metrics_and_print(times_cuda_naive);
 
     // CUDA cuBLAS
@@ -145,18 +200,22 @@ int main() {
           cudaDeviceSynchronize();
         },
         times_cuda_cublas, iterations, num_samples);
+    // benchmark_kernel(
+    //     [&]() {
+    //       custom::mmult_cublas(cublas_handle, d_out, d_a, d_b, m, k, n);
+    //     },
+    //     times_cuda_cublas, iterations, num_samples);
     compute_metrics_and_print(times_cuda_cublas);
-
-    // Deallocate device memory
-    cudaFree(d_a);
-    cudaFree(d_b);
-    cudaFree(d_out);
 
     // Deallocate host memory
     free(h_a);
     free(h_b);
     free(h_out);
     free(h_out_mkl);
-    cublasDestroy(cublas_handle);
+    // Deallocate device memory
+    cudaFree(d_a);
+    cudaFree(d_b);
+    cudaFree(d_out);
   }
+  cublasDestroy(cublas_handle);
 }

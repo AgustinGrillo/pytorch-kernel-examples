@@ -256,10 +256,12 @@ void matmul_forward(int kernel_num, float *out, const float *inp,
 int main(int argc, char **argv) {
   srand(0);
 
-  int B = 8;
-  int T = 1024;
-  int C = 768;
-  int OC = 768 * 4; // expansion of 4, e.g. in the MLP
+  // for us, inp is (B*T, C), weight is (OC, C), out is (B*T, OC)
+  int B = 1;
+
+  int T = 8;
+  int C = 32768;
+  int OC = 128; 
 
   // set up the device
   int deviceIdx = 0;
@@ -338,8 +340,8 @@ int main(int argc, char **argv) {
     // napkin math: estimate the flops achieved
     // e.g. A100 40GB PCIe is advertised at 19.5 TFLOPS fp32
     float tflops = (float)B * T * C * OC * 2 / elapsed_time * 1e3f / 1e12f;
-    printf("sqrt_block_size %4d | time %.4f ms | tflops %.2f\n",
-           sqrt_block_size, elapsed_time, tflops);
+    printf("sqrt_block_size %4d | time %.4f us | tflops %.2f\n",
+           sqrt_block_size, 1000 * elapsed_time, tflops);
   }
 
   // free memory
